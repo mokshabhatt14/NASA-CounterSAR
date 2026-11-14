@@ -2,7 +2,7 @@
 """
 CounterSAR - AI/ML & Anomaly Detection Skeleton
 Author: Nithish (Person C)
-Study Area: Kuttanad, Kerala (lon 76.30 to 76.50, lat 9.30 to 9.50, 100m grid, dB units)
+Locked Contract: Kuttanad (lon 76.30-76.50, lat 9.30-9.50) | EPSG:32643 | 100m | dB | NetCDF (time, y, x)
 """
 
 from abc import ABC, abstractmethod
@@ -12,7 +12,7 @@ import xarray as xr
 
 
 class DataSource:
-    """Loads processed Sentinel-1, NISAR, and environmental cubes from Moksha & Shreya."""
+    """Loads processed NetCDF (.nc) cubes from Moksha (Person A) & Shreya (Person B)."""
     def __init__(
         self,
         s1_path: str,
@@ -23,21 +23,28 @@ class DataSource:
         self.features_path = features_path
         self.nisar_path = nisar_path
 
+    def _ensure_contract_dims(self, ds: xr.Dataset) -> xr.Dataset:
+        """Ensures dimensions are strictly ordered as (time, y, x)."""
+        for var in ds.data_vars:
+            if set(("time", "y", "x")).issubset(ds[var].dims):
+                ds[var] = ds[var].transpose("time", "y", "x")
+        return ds
+
     def load_sar_cube(self) -> xr.Dataset:
-        """Loads SAR backscatter cube in dB with shape (time, y, x)."""
-        raise NotImplementedError
+        """Loads Sentinel-1 SAR backscatter NetCDF cube in dB with shape (time, y, x)."""
+        ds = xr.open_dataset(self.s1_path)
+        return self._ensure_contract_dims(ds)
 
     def load_context_features(self) -> Optional[xr.Dataset]:
-        """Loads rainfall, soil moisture, DEM elevation, land-cover, and crop-phase cube."""
-        raise NotImplementedError
+        """Loads features.nc (rainfall, soil moisture, DEM, WorldCover, crop-phase)."""
+        if not self.features_path:
+            return None
+        ds = xr.open_dataset(self.features_path)
+        return self._ensure_contract_dims(ds)
 
 
 class ExpectationModel(ABC):
-    """
-    Base interface for:
-      1. ClimatologyModel (Step 2 seasonal baseline)
-      2. QuantileBoostModel (Step 3 weather-aware LightGBM / quantile boosting)
-    """
+    """Base interface for ClimatologyModel (Step 2) and QuantileBoostModel (Step 3)."""
     @abstractmethod
     def fit(self, sar_cube: xr.DataArray, features: Optional[xr.Dataset] = None) -> "ExpectationModel":
         pass
@@ -51,7 +58,7 @@ class ExpectationModel(ABC):
 
 
 class AnomalyScorer:
-    """Computes z-scores and applies temporal persistence filtering."""
+    """Computes z-scores and applies temporal persistence filtering (Step 4)."""
     def __init__(self, z_threshold: float = 2.0, persistence_steps: int = 2):
         self.z_threshold = z_threshold
         self.persistence_steps = persistence_steps
@@ -59,24 +66,20 @@ class AnomalyScorer:
     def compute_z_scores(
         self, observed: xr.DataArray, expected_mean: xr.DataArray, expected_sigma: xr.DataArray
     ) -> xr.DataArray:
-        """Calculates per-pixel z-score: (observed - expected_mean) / expected_sigma."""
         raise NotImplementedError
 
     def apply_persistence_filter(self, z_scores: xr.DataArray) -> xr.DataArray:
-        """Suppresses single-date speckle noise spikes."""
         raise NotImplementedError
 
 
 class Interpreter:
-    """
-    Generates the three-category CounterSAR verdict system and Anomaly Card summaries for Tarun.
-    """
+    """Generates the 3 CounterSAR verdicts and Anomaly Card summaries (Step 4)."""
     VERDICT_LABELS = {
         0: "Expected",
         1: "Unusual but Explained",
         2: "Unexplained Candidate Event",
     }
-    PIXEL_AREA_KM2 = 0.01  # 100m x 100m grid pixel = 0.01 km^2
+    PIXEL_AREA_KM2 = 0.01  # 100m x 100m in EPSG:32643 = 0.01 km^2
 
     def classify(
         self,
@@ -84,25 +87,11 @@ class Interpreter:
         z_weather: Optional[xr.DataArray] = None,
         threshold: float = 2.0,
     ) -> xr.DataArray:
-        """Returns integer verdict map (0, 1, 2) with shape (time, y, x)."""
-        raise NotImplementedError
-
-    def build_anomaly_card(
-        self,
-        date_str: str,
-        verdict_slice: xr.DataArray,
-        z_slice: xr.DataArray,
-        env_summary: Optional[Dict[str, float]] = None,
-    ) -> Dict[str, Any]:
-        """
-        Formats Anomaly Card payload for Tarun's frontend:
-        verdict, confidence, estimated_affected_area_km2, and environmental drivers.
-        """
         raise NotImplementedError
 
 
 class Pipeline:
-    """End-to-end CounterSAR pipeline connecting data, models, scoring, and verdicts."""
+    """End-to-end CounterSAR pipeline orchestrator."""
     def __init__(
         self,
         data_source: DataSource,
@@ -118,12 +107,4 @@ class Pipeline:
         self.interpreter = interpreter
 
     def run(self) -> Dict[str, Any]:
-        """
-        Returns dictionary containing:
-          - 'observed': xr.DataArray (for Tarun's swipe viewer)
-          - 'predicted': xr.DataArray (for Tarun's swipe viewer)
-          - 'z_scores': xr.DataArray (anomaly layer)
-          - 'verdicts': xr.DataArray (0=Expected, 1=Unusual but Explained, 2=Unexplained Candidate Event)
-          - 'cards': Dict[str, Any] (Anomaly Card metadata per date)
-        """
         raise NotImplementedError
