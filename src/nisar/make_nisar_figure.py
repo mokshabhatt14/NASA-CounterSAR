@@ -18,5 +18,5 @@ for ax, pol in zip(axes, ["HH", "HV"]):               # pair each panel with a c
     ax.set_aspect("equal")                            # 1 m east = 1 m north, so the map isn't stretched
 fig.suptitle(f"Kuttanad, NISAR ascending track 113, {str(day.time.values)[:10]} (100 m)")  # title with the date
 
-Path("shreya/figures").mkdir(parents=True, exist_ok=True)   # create the output folder if missing
-fig.savefig("shreya/figures/nisar_hh_hv.png", dpi=200, bbox_inches="tight")  # dpi = sharpness; tight trims white borders
+Path("src/nisar/figures").mkdir(parents=True, exist_ok=True)   # create the output folder if missing
+fig.savefig("src/nisar/figures/nisar_hh_hv.png", dpi=200, bbox_inches="tight")  # dpi = sharpness; tight trims white borders
