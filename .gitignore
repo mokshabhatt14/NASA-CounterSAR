@@ -1,5 +1,22 @@
-data/
+# Data (keep folders, ignore contents)
+data/raw/*
+data/processed/*
+!data/raw/.gitkeep
+!data/processed/.gitkeep
+
+# Satellite and model files
 *.tif
 *.tiff
 *.h5
 *.hdf5
+*.nc
+*.zarr/
+
+# Secrets
+.env
+
+# Python
+.venv/
+__pycache__/
+*.pyc
+.ipynb_checkpoints/
