@@ -1,0 +1,10 @@
+streamlit 
+xarray 
+numpy
+scipy
+matplotlib
+pillow
+folium
+streamlit-folium
+streamlit-image-comparison
+plotly
