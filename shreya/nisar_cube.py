@@ -11,8 +11,9 @@ OUT_PATH = Path("data/processed/nisar_cube.nc")    # where the finished cube is 
 BASE = "science/LSAR/GCOV/grids/frequencyA"        # path inside the .h5 to the 10 m layers
 
 # The team's locked 100 m grid, copied from test_step2_dummy.py (pixel centres, metres, EPSG:32643)
-X_OUT = np.arange(642700, 664700, 100, dtype=np.float64)    # 220 columns, west to east
-Y_OUT = np.arange(1028400, 1050500, 100, dtype=np.float64)  # 221 rows, south to north
+# Moksha's real 100 m grid (pixel centres, metres, EPSG:32643); cell edges are on multiples of 100 m
+X_OUT = np.arange(642650, 664800, 100, dtype=np.float64)    # 222 columns, west to east (642650 ... 664750)
+Y_OUT = np.arange(1028250, 1050550, 100, dtype=np.float64)  # 223 rows, south to north (1028250 ... 1050450)
 
 BLOCK = 10        # one 100 m cell = 10 x 10 pixels of 10 m
 MIN_VALID = 50    # a 100 m cell needs at least 50 of its 100 pixels to be valid, else it becomes NaN
