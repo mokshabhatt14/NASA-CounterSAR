@@ -1,0 +1,5 @@
+data/
+*.tif
+*.tiff
+*.h5
+*.hdf5
