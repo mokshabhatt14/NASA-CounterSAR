@@ -1,0 +1,67 @@
+[
+  {
+    "date": "2018-07-01",
+    "verdict": "Expected",
+    "confidence": 0.88,
+    "estimated_affected_area_km2": 1.02,
+    "explained_area_km2": 38.49,
+    "unexplained_pixels": 102,
+    "explained_pixels": 3849,
+    "environmental_drivers": {
+      "rainfall": 408.301,
+      "elevation": 2.025
+    }
+  },
+  {
+    "date": "2018-07-13",
+    "verdict": "Unusual but Explained",
+    "confidence": 0.82,
+    "estimated_affected_area_km2": 1.41,
+    "explained_area_km2": 158.11,
+    "unexplained_pixels": 141,
+    "explained_pixels": 15811,
+    "environmental_drivers": {
+      "rainfall": 291.047,
+      "elevation": 2.025
+    }
+  },
+  {
+    "date": "2018-07-25",
+    "verdict": "Expected",
+    "confidence": 0.88,
+    "estimated_affected_area_km2": 1.02,
+    "explained_area_km2": 30.0,
+    "unexplained_pixels": 102,
+    "explained_pixels": 3000,
+    "environmental_drivers": {
+      "rainfall": 208.783,
+      "elevation": 2.025
+    }
+  },
+  {
+    "date": "2018-08-06",
+    "verdict": "Unusual but Explained",
+    "confidence": 0.82,
+    "estimated_affected_area_km2": 0.23,
+    "explained_area_km2": 7.2,
+    "unexplained_pixels": 23,
+    "explained_pixels": 720,
+    "environmental_drivers": {
+      "rainfall": 535.082,
+      "elevation": 2.025
+    }
+  },
+  {
+    "date": "2018-08-18",
+    "verdict": "Unexplained Candidate Event",
+    "confidence": 0.72,
+    "estimated_affected_area_km2": 9.61,
+    "explained_area_km2": 200.56,
+    "unexplained_pixels": 961,
+    "explained_pixels": 20056,
+    "environmental_drivers": {
+      "rainfall": 187.359,
+      "elevation": 2.025
+    }
+  }
+]
