@@ -43,7 +43,8 @@ python src/clean_table.py
 - NISAR is a 2026 demonstration layer only. C-band and L-band values are not interchangeable.
 ## Anomaly card fields
 - Rainfall: mm from CHIRPS. The accumulation window is `null` until verified against the pipeline.
-- Soil moisture (m3/m3) and crop phase are `null` because no data source is connected yet. `null` means missing, not zero.
+- Soil moisture uses the ERA5-Land `swvl1` estimate (top 0-7 cm), daily averaged in m3/m3 from hourly values. This is model reanalysis context on a roughly 9 km grid, not a direct satellite measurement. The SMAP SPL3SMP_E Version 6 values remain withheld because their Kuttanad retrievals did not pass recommended-quality flags.
+- Crop season is estimated from Kerala Agricultural University's typical Kuttanad calendar (Additional Crop: May-September; Puncha: October-March). This is contextual calendar information, not field-specific crop-stage observation: https://www.celkau.in/crops/cereals/rice/climate.php
 - Sensor: Sentinel-1 C-band, descending orbit, for all 2018 dates.
 - Confidence: 0-1 score of how strongly the evidence supports the verdict. It is not a probability.
 - `class_pixel_counts`: `expected` is `null` (total valid pixels not stored). Each pixel is 100 m x 100 m (10,000 m2).

@@ -11,5 +11,21 @@
     "2018-08-06": null,
     "2018-08-18": null
   },
-  "crop_calendar": []
+  "crop_calendar_source": "Kerala Agricultural University (KAU), Agri-Infotech Portal",
+  "crop_calendar_source_url": "https://www.celkau.in/crops/cereals/rice/climate.php",
+  "crop_calendar_note": "Typical Kuttanad season windows; estimated context, not field-specific observations.",
+  "crop_calendar": [
+    {
+      "season": "Additional Crop",
+      "start_month": 5,
+      "end_month": 9,
+      "phase": "Kuttanad Additional Crop season (calendar estimate)"
+    },
+    {
+      "season": "Puncha",
+      "start_month": 10,
+      "end_month": 3,
+      "phase": "Kuttanad Puncha season (calendar estimate)"
+    }
+  ]
 }

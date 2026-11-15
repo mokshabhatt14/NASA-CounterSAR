@@ -12,11 +12,7 @@ import xarray as xr
 from PIL import Image
 
 ROOT = Path(__file__).resolve().parents[1]
-DATA_PATHS = (
-    ROOT / "results" / "countersar_outputs.nc",
-    ROOT / "results" / "dummy_output.nc",
-    ROOT / "results" / "dummy_step2_outputs.nc",
-)
+DATA_PATHS = (ROOT / "results" / "countersar_outputs.nc",)
 CARDS_PATH = ROOT / "results" / "anomaly_cards.json"
 PIXEL_AREA_KM2 = 0.01
 BOUNDS = [[9.30, 76.30], [9.50, 76.50]]
@@ -29,7 +25,16 @@ VERDICT_COLORS = {
 
 
 @st.cache_data(show_spinner="Loading CounterSAR NetCDF…")
-def load_pipeline_data(path: str, modified_time: float, cards_path: str = "", cards_modified_time: float = 0.0) -> dict:
+def load_pipeline_data(
+    path: str,
+    modified_time: float,
+    cards_path: str = "",
+    cards_modified_time: float = 0.0,
+    era5_soil_path: str = "",
+    era5_soil_modified_time: float = 0.0,
+    smap_qc_path: str = "",
+    smap_qc_modified_time: float = 0.0,
+) -> dict:
     """Load NetCDF variables and normalize backend naming into the UI contract."""
     with xr.open_dataset(path) as source:
         ds = source.load()
@@ -63,6 +68,14 @@ def load_pipeline_data(path: str, modified_time: float, cards_path: str = "", ca
         elif isinstance(external_cards, dict):
             cards = external_cards
     payload["cards"] = cards
+    smap_qc = {}
+    if smap_qc_path and Path(smap_qc_path).exists():
+        with open(smap_qc_path, "r", encoding="utf-8") as qc_file:
+            smap_qc = json.load(qc_file).get("dates", {})
+    era5_soil = {}
+    if era5_soil_path and Path(era5_soil_path).exists():
+        with open(era5_soil_path, "r", encoding="utf-8") as soil_file:
+            era5_soil = json.load(soil_file).get("dates", {})
     # Optional per-date environmental context can be stored as dataset variables.
     payload["environment"] = {}
     dates = _date_strings(payload["observed"].time.values)
@@ -72,18 +85,104 @@ def load_pipeline_data(path: str, modified_time: float, cards_path: str = "", ca
             if key in ds:
                 val = ds[key].isel(time=i).item()
                 env[key] = val.item() if isinstance(val, np.generic) else val
+        era5_entry = era5_soil.get(date, {})
+        if env.get("soil_moisture") is None and era5_entry:
+            env["soil_moisture"] = era5_entry.get("soil_moisture_m3_m3")
+            env["soil_moisture_status"] = era5_entry.get("status")
+            env["soil_moisture_units"] = "m³/m³"
+        qc_entry = smap_qc.get(date, {})
+        if env.get("soil_moisture") is None and qc_entry and not era5_entry:
+            env["soil_moisture"] = qc_entry.get("soil_moisture_m3_m3")
+            env["soil_moisture_status"] = qc_entry.get("status")
+            env["soil_moisture_units"] = "m³/m³"
+        if env.get("crop_phase") is None:
+            phase, source_url = _calendar_crop_phase(date)
+            if phase:
+                env["crop_phase"] = phase
+                env["crop_phase_status"] = "Estimated from typical Kuttanad crop-season calendar"
+                env["crop_phase_source"] = source_url
         payload["environment"][date] = env
     # Normalize the pipeline's anomaly_cards.json schema for the dashboard.
     for date, card in payload["cards"].items():
-        drivers = card.get("environmental_drivers", {}) or {}
-        card.setdefault("env_summary", {
-            "rainfall_mm": drivers.get("rainfall", drivers.get("rainfall_mm")),
-            "soil_moisture": drivers.get("soil_moisture"),
-            "crop_phase": drivers.get("crop_phase"),
-            "sensor": drivers.get("sensor", "Sentinel-1 C-band"),
-        })
-        payload["environment"][date] = card["env_summary"] or payload["environment"].get(date, {})
+        normalized_env = _normalize_environment(card, payload["environment"].get(date, {}))
+        payload["environment"][date] = normalized_env
+        card["env_summary"] = normalized_env
     return payload
+
+
+def _measure_value(measurement):
+    """Accept either a scalar or the result-card {value, units, ...} shape."""
+    if isinstance(measurement, dict):
+        return measurement.get("value")
+    return measurement
+
+
+def _sensor_label(sensor) -> str | None:
+    if isinstance(sensor, dict):
+        name = sensor.get("name")
+        band = sensor.get("band")
+        orbit = sensor.get("orbit")
+        if name and band:
+            label = f"{name} {band}"
+        else:
+            label = name or band
+        if label and orbit:
+            label = f"{label} · {orbit}"
+        return label
+    return str(sensor) if sensor is not None else None
+
+
+def _normalize_environment(card: dict, fallback: dict | None = None) -> dict:
+    """Flatten current and legacy card formats into the dashboard's environment fields."""
+    fallback = fallback or {}
+    drivers = card.get("environmental_drivers", {}) or {}
+    existing = card.get("env_summary", {}) or {}
+    rainfall = existing.get("rainfall_mm", drivers.get("rainfall", drivers.get("rainfall_mm", fallback.get("rainfall_mm"))))
+    moisture_candidates = (
+        existing.get("soil_moisture"),
+        drivers.get("soil_moisture"),
+        fallback.get("soil_moisture"),
+    )
+    moisture = next((value for value in moisture_candidates if _measure_value(value) is not None), None)
+    sensor = existing.get("sensor", card.get("sensor", drivers.get("sensor", fallback.get("sensor"))))
+    rainfall_details = rainfall if isinstance(rainfall, dict) else {}
+    moisture_details = moisture if isinstance(moisture, dict) else {}
+    return {
+        "rainfall_mm": _measure_value(rainfall),
+        "rainfall_units": rainfall_details.get("units", existing.get("rainfall_units", "mm")),
+        "rainfall_window_days": rainfall_details.get("accumulation_window_days", existing.get("rainfall_window_days")),
+        "rainfall_window_description": rainfall_details.get("window_description", existing.get("rainfall_window_description")),
+        "rainfall_source": rainfall_details.get("source", existing.get("rainfall_source")),
+        "soil_moisture": _measure_value(moisture),
+        "soil_moisture_units": moisture_details.get("units", existing.get("soil_moisture_units", fallback.get("soil_moisture_units", "m³/m³"))),
+        "soil_moisture_status": existing.get("soil_moisture_status") or drivers.get("soil_moisture_status") or fallback.get("soil_moisture_status"),
+        "crop_phase": existing.get("crop_phase") or drivers.get("crop_phase") or fallback.get("crop_phase"),
+        "crop_phase_status": existing.get("crop_phase_status") or drivers.get("crop_phase_status") or fallback.get("crop_phase_status"),
+        "crop_phase_source": existing.get("crop_phase_source") or drivers.get("crop_phase_source") or fallback.get("crop_phase_source"),
+        "sensor": _sensor_label(sensor) or "Sentinel-1 C-band",
+    }
+
+
+def _calendar_crop_phase(date_text: str) -> tuple[str | None, str | None]:
+    """Estimate the recurring Kuttanad rice season from the configured calendar."""
+    try:
+        month = int(str(date_text)[:10].split("-")[1])
+        with open(ROOT / "config" / "env_context.json", "r", encoding="utf-8") as context_file:
+            context = json.load(context_file)
+    except (OSError, ValueError, IndexError, KeyError):
+        return None, None
+
+    for entry in context.get("crop_calendar", []):
+        start_month = int(entry["start_month"])
+        end_month = int(entry["end_month"])
+        in_window = (
+            start_month <= month <= end_month
+            if start_month <= end_month
+            else month >= start_month or month <= end_month
+        )
+        if in_window:
+            return entry["phase"], context.get("crop_calendar_source_url")
+    return None, context.get("crop_calendar_source_url")
 
 
 def _date_strings(values) -> list[str]:
@@ -339,7 +438,16 @@ def main() -> None:
         # File modification times in the cache key make freshly pulled outputs visible immediately.
         cards_path = str(CARDS_PATH) if CARDS_PATH.exists() else ""
         cards_mtime = CARDS_PATH.stat().st_mtime if cards_path else 0.0
-        data = load_pipeline_data(str(path), path.stat().st_mtime, cards_path, cards_mtime)
+        era5_soil_file = ROOT / "data" / "processed" / "era5_land_soil_moisture_kuttanad.json"
+        era5_soil_path = str(era5_soil_file) if era5_soil_file.exists() else ""
+        era5_soil_mtime = era5_soil_file.stat().st_mtime if era5_soil_path else 0.0
+        smap_qc_file = ROOT / "data" / "processed" / "smap_soil_moisture_kuttanad.json"
+        smap_qc_path = str(smap_qc_file) if smap_qc_file.exists() else ""
+        smap_qc_mtime = smap_qc_file.stat().st_mtime if smap_qc_path else 0.0
+        data = load_pipeline_data(
+            str(path), path.stat().st_mtime, cards_path, cards_mtime,
+            era5_soil_path, era5_soil_mtime, smap_qc_path, smap_qc_mtime
+        )
     except Exception as exc:
         st.error(f"Could not read {path.name}: {exc}")
         st.stop()
@@ -425,18 +533,46 @@ def main() -> None:
         st.markdown(f"<span class='tag' style='background:{VERDICT_COLORS[verdict]}'>SYSTEM VERDICT · {verdict}</span>", unsafe_allow_html=True)
         k1, k2, k3, k4 = st.columns(4)
         k1.metric("Candidate affected area", f"{area:.2f} km²")
-        k2.metric("Confidence / persistence", str(card.get("confidence", "Not provided")))
+        k2.metric(
+            "Confidence / persistence",
+            str(card.get("confidence", "Not provided")),
+            help=card.get("confidence_definition"),
+        )
         k3.metric("Active sensor", str(env.get("sensor", "Not provided")))
         k4.metric("Candidate pixels", f"{event_pixels:,}")
         e1, e2, e3 = st.columns(3)
         rainfall_value = env.get("rainfall_mm")
-        e1.metric("Rainfall", f"{rainfall_value} mm" if rainfall_value is not None else "Unavailable")
+        rainfall_units = env.get("rainfall_units", "mm")
+        e1.metric("Rainfall", f"{rainfall_value:,.3f} {rainfall_units}" if rainfall_value is not None else "Unavailable")
+        rainfall_period = env.get("rainfall_window_description")
+        if not rainfall_period and env.get("rainfall_window_days") is not None:
+            rainfall_period = f"Accumulated over {env['rainfall_window_days']} days"
+        rainfall_period = rainfall_period or "Accumulation period not specified"
+        rainfall_source = env.get("rainfall_source")
+        e1.caption(" · ".join(part for part in (rainfall_source, rainfall_period) if part))
         soil_moisture = env.get("soil_moisture")
         crop_phase = env.get("crop_phase")
-        e2.metric("Soil moisture", str(soil_moisture) if soil_moisture is not None else "Unavailable")
+        soil_units = env.get("soil_moisture_units", "m³/m³")
+        e2.metric("Soil moisture", f"{soil_moisture:.3f} {soil_units}" if soil_moisture is not None else "Unavailable")
+        if env.get("soil_moisture_status"):
+            e2.caption(env["soil_moisture_status"])
         e3.metric("Crop phase", str(crop_phase) if crop_phase is not None else "Unavailable")
-        if rainfall_value is None or env.get("soil_moisture") is None:
-            st.warning("Weather context is missing from this file. Mode B fallback: interpret the radar signal without full weather corroboration.")
+        if env.get("crop_phase_status"):
+            e3.caption(env["crop_phase_status"])
+        missing_context = []
+        if rainfall_value is None:
+            missing_context.append("rainfall values")
+        if env.get("soil_moisture") is None:
+            missing_context.append("soil moisture values")
+        if crop_phase is None:
+            missing_context.append("crop phase")
+        if missing_context:
+            st.warning(
+                f"Context still missing: {', '.join(missing_context)}. "
+                "Mode B fallback: interpret the radar signal without full environmental corroboration."
+            )
+        elif not env.get("rainfall_window_days") and not env.get("rainfall_window_description"):
+            st.info("Rainfall is available, but its accumulation period is not specified in the result card.")
         z = data["z_scores"].isel(time=index).values
         v = data["verdicts"].isel(time=index).values
         negative = int(np.count_nonzero((z < -2.0) & (v == 2)))
