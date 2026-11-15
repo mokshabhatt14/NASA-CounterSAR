@@ -1,0 +1,51 @@
+{
+  "source": "ERA5-Land hourly reanalysis",
+  "variable": "swvl1 (volumetric soil water layer 1, 0-7 cm)",
+  "units": "m3/m3",
+  "temporal_aggregation": "Mean of available hourly values for each UTC date, then mean across valid grid cells",
+  "native_grid_spacing_degrees": 0.1,
+  "nominal_native_resolution_km": 9,
+  "spatial_bounds": {
+    "west": 76.3,
+    "east": 76.5,
+    "south": 9.3,
+    "north": 9.5
+  },
+  "dates": {
+    "2018-07-01": {
+      "soil_moisture_m3_m3": 0.39131,
+      "hours_in_daily_mean": 24,
+      "valid_grid_cells": 6,
+      "grid_cell_count": 9,
+      "status": "ERA5-Land model estimate; daily mean of 24 hourly values across 6 valid grid cells"
+    },
+    "2018-07-13": {
+      "soil_moisture_m3_m3": 0.38984,
+      "hours_in_daily_mean": 24,
+      "valid_grid_cells": 6,
+      "grid_cell_count": 9,
+      "status": "ERA5-Land model estimate; daily mean of 24 hourly values across 6 valid grid cells"
+    },
+    "2018-07-25": {
+      "soil_moisture_m3_m3": 0.38016,
+      "hours_in_daily_mean": 24,
+      "valid_grid_cells": 6,
+      "grid_cell_count": 9,
+      "status": "ERA5-Land model estimate; daily mean of 24 hourly values across 6 valid grid cells"
+    },
+    "2018-08-06": {
+      "soil_moisture_m3_m3": 0.36193,
+      "hours_in_daily_mean": 24,
+      "valid_grid_cells": 6,
+      "grid_cell_count": 9,
+      "status": "ERA5-Land model estimate; daily mean of 24 hourly values across 6 valid grid cells"
+    },
+    "2018-08-18": {
+      "soil_moisture_m3_m3": 0.39266,
+      "hours_in_daily_mean": 24,
+      "valid_grid_cells": 6,
+      "grid_cell_count": 9,
+      "status": "ERA5-Land model estimate; daily mean of 24 hourly values across 6 valid grid cells"
+    }
+  }
+}
