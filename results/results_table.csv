@@ -1,0 +1,6 @@
+date,verdict,confidence,estimated_affected_area_km2,explained_area_km2,unexplained_pixels,explained_pixels,rainfall_mm,elevation_m
+2018-07-01,Expected,0.88,1.02,38.49,102,3849,408.301,2.025
+2018-07-13,Unusual but Explained,0.8200000000000001,1.4100000000000001,158.11,141,15811,291.047,2.025
+2018-07-25,Expected,0.88,1.02,30.0,102,3000,208.783,2.025
+2018-08-06,Unusual but Explained,0.8200000000000001,0.23,7.2,23,720,535.082,2.025
+2018-08-18,Unexplained Candidate Event,0.72,9.61,200.56,961,20056,187.359,2.025

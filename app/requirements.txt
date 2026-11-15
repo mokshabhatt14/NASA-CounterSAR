@@ -6,7 +6,6 @@ matplotlib>=3.7
 Pillow>=9.5
 folium>=0.14
 streamlit-folium>=0.15
-streamlit-image-comparison>=0.0.4
 plotly>=5.18
 netCDF4>=1.6
 zarr>=2.16,<3
