@@ -4,6 +4,7 @@ numpy>=1.24
 scipy>=1.10
 matplotlib>=3.7
 Pillow>=9.5
+pyproj>=3.5
 folium>=0.14
 streamlit-folium>=0.15
 plotly>=5.18

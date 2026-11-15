@@ -39,6 +39,7 @@ def load_pipeline_data(path: str, modified_time: float, cards_path: str = "", ca
         "z_scores": ("z_scores", "z_score_clim", "z_score"),
     }
     payload = {}
+    payload["crs"] = str(ds.attrs.get("crs", "EPSG:32643"))
     for target, names in aliases.items():
         found = next((name for name in names if name in ds), None)
         if found is None:
@@ -89,6 +90,52 @@ def _date_strings(values) -> list[str]:
     return [np.datetime_as_string(np.datetime64(value, "D"), unit="D") for value in values]
 
 
+def _warp_to_geographic(array: xr.DataArray, crs: str, categorical: bool = False) -> tuple[np.ndarray, list[list[float]]]:
+    """Resample an ascending projected (y, x) grid to a north-up geographic image."""
+    from pyproj import Transformer
+    from scipy.ndimage import map_coordinates
+
+    source = np.asarray(array.values, dtype=np.float32)
+    x = np.asarray(array.x.values, dtype=np.float64)
+    y = np.asarray(array.y.values, dtype=np.float64)
+    if source.ndim != 2 or len(x) < 2 or len(y) < 2:
+        raise ValueError("Map rasters must be 2D with at least two x and y coordinates.")
+    dx = float(np.median(np.diff(x)))
+    dy = float(np.median(np.diff(y)))
+    if not np.allclose(np.diff(x), dx, rtol=1e-5, atol=1e-5) or not np.allclose(np.diff(y), dy, rtol=1e-5, atol=1e-5):
+        raise ValueError("The map reprojection expects a regularly spaced x/y grid.")
+
+    x_min, x_max = min(x[0], x[-1]) - abs(dx) / 2, max(x[0], x[-1]) + abs(dx) / 2
+    y_min, y_max = min(y[0], y[-1]) - abs(dy) / 2, max(y[0], y[-1]) + abs(dy) / 2
+    edge_x = np.concatenate((np.linspace(x_min, x_max, 512), np.full(256, x_max),
+                             np.linspace(x_max, x_min, 512), np.full(256, x_min)))
+    edge_y = np.concatenate((np.full(512, y_min), np.linspace(y_min, y_max, 256),
+                             np.full(512, y_max), np.linspace(y_max, y_min, 256)))
+    to_geo = Transformer.from_crs(crs, "EPSG:4326", always_xy=True)
+    edge_lon, edge_lat = to_geo.transform(edge_x, edge_y)
+    west, east = float(np.min(edge_lon)), float(np.max(edge_lon))
+    south, north = float(np.min(edge_lat)), float(np.max(edge_lat))
+    bounds = [[south, west], [north, east]]
+
+    rows, cols = source.shape
+    lon_centers = west + (np.arange(cols) + 0.5) * (east - west) / cols
+    lat_centers = north - (np.arange(rows) + 0.5) * (north - south) / rows
+    lon_grid, lat_grid = np.meshgrid(lon_centers, lat_centers)
+    to_projected = Transformer.from_crs("EPSG:4326", crs, always_xy=True)
+    projected_x, projected_y = to_projected.transform(lon_grid, lat_grid)
+    source_cols = (projected_x - x[0]) / dx
+    source_rows = (projected_y - y[0]) / dy
+    warped = map_coordinates(
+        source,
+        [source_rows, source_cols],
+        order=0 if categorical else 1,
+        mode="constant",
+        cval=np.nan,
+        prefilter=False,
+    )
+    return warped.astype(np.float32), bounds
+
+
 def _card_for(data: dict, date: str, index: int) -> tuple[dict, dict]:
     card = data["cards"].get(date, {})
     env = card.get("env_summary", {}) or data["environment"].get(date, {})
@@ -108,6 +155,7 @@ def _as_png_data_uri(values: np.ndarray, layer: str) -> str:
     from matplotlib import colormaps
 
     values = np.asarray(values)
+    valid = np.isfinite(values)
     if layer == "Verdict Map":
         rgba = np.zeros((*values.shape, 4), dtype=np.uint8)
         rgba[values == 0] = (33, 135, 101, 70)
@@ -116,12 +164,12 @@ def _as_png_data_uri(values: np.ndarray, layer: str) -> str:
     elif layer == "Bidirectional Z-Score Map":
         scale = np.clip((np.nan_to_num(values, nan=0.0) + 4.0) / 8.0, 0, 1)
         rgba = (colormaps["RdBu_r"](scale) * 255).astype(np.uint8)
-        rgba[..., 3] = np.where(np.abs(values) < 0.25, 0, 225).astype(np.uint8)
+        rgba[..., 3] = np.where(valid & (np.abs(values) >= 0.25), 225, 0).astype(np.uint8)
     else:
         low, high = -22.0, -4.0
         scale = np.clip((np.nan_to_num(values, nan=low) - low) / (high - low), 0, 1)
         gray = (scale * 255).astype(np.uint8)
-        rgba = np.stack((gray, gray, gray, np.full_like(gray, 220)), axis=-1)
+        rgba = np.stack((gray, gray, gray, np.where(valid, 220, 0).astype(np.uint8)), axis=-1)
     buffer = io.BytesIO()
     Image.fromarray(rgba, mode="RGBA").save(buffer, format="PNG")
     encoded = base64.b64encode(buffer.getvalue()).decode("ascii")
@@ -139,7 +187,11 @@ def _render_map(data: dict, index: int, layer: str) -> None:
             "Observed SAR Backscatter (dB)": "observed",
             "Expected SAR Backscatter (dB)": "predicted",
         }[layer]
-        raster = data[variable].isel(time=index).values
+        raster, raster_bounds = _warp_to_geographic(
+            data[variable].isel(time=index),
+            data["crs"],
+            categorical=(layer == "Verdict Map"),
+        )
         image_uri = _as_png_data_uri(raster, layer)
         # OpenStreetMap provides geographic context without a key-protected tile service.
         # Keep the view fixed to the full study area so the raster and boundaries stay in frame.
@@ -151,7 +203,7 @@ def _render_map(data: dict, index: int, layer: str) -> None:
         )
         folium.raster_layers.ImageOverlay(
             image=image_uri,
-            bounds=BOUNDS,
+            bounds=raster_bounds,
             opacity=0.9,
             interactive=True,
             name=layer,
@@ -184,7 +236,7 @@ def _render_map(data: dict, index: int, layer: str) -> None:
                 )
             ),
         ).add_to(fmap)
-        fmap.fit_bounds(BOUNDS, padding=(24, 24))
+        fmap.fit_bounds(raster_bounds, padding=(24, 24))
         folium.LayerControl().add_to(fmap)
         st_folium(fmap, height=677, use_container_width=True, returned_objects=[])
     except Exception as exc:
@@ -195,7 +247,9 @@ def _rgb(values: np.ndarray) -> Image.Image:
     from matplotlib import colormaps
 
     scale = np.clip((np.nan_to_num(values, nan=-22) + 22) / 18, 0, 1)
-    return Image.fromarray((colormaps["gray"](scale)[..., :3] * 255).astype(np.uint8))
+    rgba = (colormaps["gray"](scale) * 255).astype(np.uint8)
+    rgba[..., 3] = np.where(np.isfinite(values), 255, 0).astype(np.uint8)
+    return Image.fromarray(rgba, mode="RGBA")
 
 
 def main() -> None:
@@ -420,8 +474,16 @@ def main() -> None:
 
         st.markdown("#### Expected vs. actual backscatter")
         st.caption("Both images use the same scale (−22 to −4 dB) for direct visual comparison.")
-        expected = _rgb(data["predicted"].isel(time=index).values)
-        actual = _rgb(data["observed"].isel(time=index).values)
+        expected_values, image_bounds = _warp_to_geographic(data["predicted"].isel(time=index), data["crs"])
+        actual_values, actual_bounds = _warp_to_geographic(data["observed"].isel(time=index), data["crs"])
+        if not np.allclose(image_bounds, actual_bounds, rtol=0, atol=1e-10):
+            st.error("Expected and observed layers do not share the same geographic footprint.")
+        expected = _rgb(expected_values)
+        actual = _rgb(actual_values)
+        st.caption(
+            f"North-up footprint · {image_bounds[0][0]:.4f}–{image_bounds[1][0]:.4f}°N · "
+            f"{image_bounds[0][1]:.4f}–{image_bounds[1][1]:.4f}°E"
+        )
         before, after = st.columns(2, gap="large")
         before.image(expected, caption="Expected backscatter (dB)", use_container_width=True)
         after.image(actual, caption="Observed backscatter (dB)", use_container_width=True)
