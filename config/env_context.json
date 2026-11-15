@@ -1,0 +1,15 @@
+{
+  "sensor_default": { "name": "Sentinel-1", "band": "C-band", "orbit": "descending" },
+  "sensor_by_date": {},
+  "rainfall_window_days": null,
+  "rainfall_source": "CHIRPS",
+  "pixel_area_m2": 10000,
+  "soil_moisture_by_date": {
+    "2018-07-01": null,
+    "2018-07-13": null,
+    "2018-07-25": null,
+    "2018-08-06": null,
+    "2018-08-18": null
+  },
+  "crop_calendar": []
+}

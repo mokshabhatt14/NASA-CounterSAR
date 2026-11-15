@@ -8,9 +8,33 @@
     "unexplained_pixels": 102,
     "explained_pixels": 3849,
     "environmental_drivers": {
-      "rainfall": 408.301,
-      "elevation": 2.025
-    }
+      "rainfall": {
+        "value": 408.301,
+        "units": "mm",
+        "accumulation_window_days": null,
+        "window_description": null,
+        "source": "CHIRPS"
+      },
+      "elevation": 2.025,
+      "soil_moisture": {
+        "value": null,
+        "units": "m3/m3",
+        "description": "Volumetric water content"
+      },
+      "crop_phase": null
+    },
+    "sensor": {
+      "name": "Sentinel-1",
+      "band": "C-band",
+      "orbit": "descending"
+    },
+    "class_pixel_counts": {
+      "expected": null,
+      "unusual_but_explained": 3849,
+      "unexplained_candidate_event": 102,
+      "pixel_area_m2": 10000
+    },
+    "confidence_definition": "Score from 0 to 1 summarising how strongly the evidence supports the verdict (based on |Z-score| and data quality). Higher = more reliable. 0.8-1.0 high, 0.5-0.8 moderate, below 0.5 low. Not a probability."
   },
   {
     "date": "2018-07-13",
@@ -21,9 +45,33 @@
     "unexplained_pixels": 141,
     "explained_pixels": 15811,
     "environmental_drivers": {
-      "rainfall": 291.047,
-      "elevation": 2.025
-    }
+      "rainfall": {
+        "value": 291.047,
+        "units": "mm",
+        "accumulation_window_days": null,
+        "window_description": null,
+        "source": "CHIRPS"
+      },
+      "elevation": 2.025,
+      "soil_moisture": {
+        "value": null,
+        "units": "m3/m3",
+        "description": "Volumetric water content"
+      },
+      "crop_phase": null
+    },
+    "sensor": {
+      "name": "Sentinel-1",
+      "band": "C-band",
+      "orbit": "descending"
+    },
+    "class_pixel_counts": {
+      "expected": null,
+      "unusual_but_explained": 15811,
+      "unexplained_candidate_event": 141,
+      "pixel_area_m2": 10000
+    },
+    "confidence_definition": "Score from 0 to 1 summarising how strongly the evidence supports the verdict (based on |Z-score| and data quality). Higher = more reliable. 0.8-1.0 high, 0.5-0.8 moderate, below 0.5 low. Not a probability."
   },
   {
     "date": "2018-07-25",
@@ -34,9 +82,33 @@
     "unexplained_pixels": 102,
     "explained_pixels": 3000,
     "environmental_drivers": {
-      "rainfall": 208.783,
-      "elevation": 2.025
-    }
+      "rainfall": {
+        "value": 208.783,
+        "units": "mm",
+        "accumulation_window_days": null,
+        "window_description": null,
+        "source": "CHIRPS"
+      },
+      "elevation": 2.025,
+      "soil_moisture": {
+        "value": null,
+        "units": "m3/m3",
+        "description": "Volumetric water content"
+      },
+      "crop_phase": null
+    },
+    "sensor": {
+      "name": "Sentinel-1",
+      "band": "C-band",
+      "orbit": "descending"
+    },
+    "class_pixel_counts": {
+      "expected": null,
+      "unusual_but_explained": 3000,
+      "unexplained_candidate_event": 102,
+      "pixel_area_m2": 10000
+    },
+    "confidence_definition": "Score from 0 to 1 summarising how strongly the evidence supports the verdict (based on |Z-score| and data quality). Higher = more reliable. 0.8-1.0 high, 0.5-0.8 moderate, below 0.5 low. Not a probability."
   },
   {
     "date": "2018-08-06",
@@ -47,9 +119,33 @@
     "unexplained_pixels": 23,
     "explained_pixels": 720,
     "environmental_drivers": {
-      "rainfall": 535.082,
-      "elevation": 2.025
-    }
+      "rainfall": {
+        "value": 535.082,
+        "units": "mm",
+        "accumulation_window_days": null,
+        "window_description": null,
+        "source": "CHIRPS"
+      },
+      "elevation": 2.025,
+      "soil_moisture": {
+        "value": null,
+        "units": "m3/m3",
+        "description": "Volumetric water content"
+      },
+      "crop_phase": null
+    },
+    "sensor": {
+      "name": "Sentinel-1",
+      "band": "C-band",
+      "orbit": "descending"
+    },
+    "class_pixel_counts": {
+      "expected": null,
+      "unusual_but_explained": 720,
+      "unexplained_candidate_event": 23,
+      "pixel_area_m2": 10000
+    },
+    "confidence_definition": "Score from 0 to 1 summarising how strongly the evidence supports the verdict (based on |Z-score| and data quality). Higher = more reliable. 0.8-1.0 high, 0.5-0.8 moderate, below 0.5 low. Not a probability."
   },
   {
     "date": "2018-08-18",
@@ -60,8 +156,32 @@
     "unexplained_pixels": 961,
     "explained_pixels": 20056,
     "environmental_drivers": {
-      "rainfall": 187.359,
-      "elevation": 2.025
-    }
+      "rainfall": {
+        "value": 187.359,
+        "units": "mm",
+        "accumulation_window_days": null,
+        "window_description": null,
+        "source": "CHIRPS"
+      },
+      "elevation": 2.025,
+      "soil_moisture": {
+        "value": null,
+        "units": "m3/m3",
+        "description": "Volumetric water content"
+      },
+      "crop_phase": null
+    },
+    "sensor": {
+      "name": "Sentinel-1",
+      "band": "C-band",
+      "orbit": "descending"
+    },
+    "class_pixel_counts": {
+      "expected": null,
+      "unusual_but_explained": 20056,
+      "unexplained_candidate_event": 961,
+      "pixel_area_m2": 10000
+    },
+    "confidence_definition": "Score from 0 to 1 summarising how strongly the evidence supports the verdict (based on |Z-score| and data quality). Higher = more reliable. 0.8-1.0 high, 0.5-0.8 moderate, below 0.5 low. Not a probability."
   }
 ]
