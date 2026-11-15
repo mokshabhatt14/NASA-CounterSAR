@@ -41,3 +41,9 @@ python src/clean_table.py
 - Clip VV/VH to about -30 to +5 dB before modelling (outliers from water and buildings).
 - Rainfall NaNs over water were filled with the nearest valid CHIRPS value.
 - NISAR is a 2026 demonstration layer only. C-band and L-band values are not interchangeable.
+## Anomaly card fields
+- Rainfall: mm from CHIRPS. The accumulation window is `null` until verified against the pipeline.
+- Soil moisture (m3/m3) and crop phase are `null` because no data source is connected yet. `null` means missing, not zero.
+- Sensor: Sentinel-1 C-band, descending orbit, for all 2018 dates.
+- Confidence: 0-1 score of how strongly the evidence supports the verdict. It is not a probability.
+- `class_pixel_counts`: `expected` is `null` (total valid pixels not stored). Each pixel is 100 m x 100 m (10,000 m2).
